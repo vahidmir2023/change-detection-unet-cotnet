@@ -32,13 +32,6 @@ python -m torch.distributed.launch --nproc_per_node=8 train.py --folder ./experi
 ```
 The training scripts for CoTNet (e.g., CoTNet-50) can be found in the [cot_experiments](cot_experiments) folder.
 
-# Inference Time vs. Accuracy
-CoTNet models consistently obtain better top-1 accuracy with less inference time than other vision backbones across both default and advanced training setups. In a word, CoTNet models seek better inference time-accuracy trade-offs than existing vision backbones.
-
-<p align="center">
-  <img src="images/inference_time.jpg" width="800"/>
-</p>
-
 ## Results on ImageNet
 | name | resolution | #params | FLOPs | Top-1 Acc. | Top-5 Acc. | model |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | 
@@ -53,18 +46,6 @@ CoTNet models consistently obtain better top-1 accuracy with less inference time
 
 Access code for Baidu is **cotn**
 
-## CoTNet on downstream tasks
-For **Object Detection and Instance Segmentation**, please see [CoTNet for Object Detection and Instance Segmentation](https://github.com/JDAI-CV/CoTNet-ObjectDetection-InstanceSegmentation).
-
-## Citing Contextual Transformer Networks
-```
-@article{cotnet,
-  title={Contextual Transformer Networks for Visual Recognition},
-  author={Li, Yehao and Yao, Ting and Pan, Yingwei and Mei, Tao},
-  journal={arXiv preprint arXiv:2107.12292},
-  year={2021}
-}
-```
 
 ## Acknowledgements
 Thanks the contribution of [timm](https://github.com/rwightman/pytorch-image-models) and awesome PyTorch team.
