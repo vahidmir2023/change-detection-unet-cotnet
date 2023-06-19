@@ -22,7 +22,7 @@ The code is mainly based on [timm](https://github.com/rwightman/pytorch-image-mo
 
 ### Clone the repository:
 ```
-git clone https://github.com/JDAI-CV/CoTNet.git
+git clone https://github.com/Mohammad-sharifi/CoTNet.git
 ```
 
 ### Train 
