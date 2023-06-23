@@ -9,6 +9,7 @@ class E2EConvBlock(nn.Module):
         super(E2EConvBlock, self).__init__()
         self.seq = nn.Sequential(
             CustomConv2d(3, 64, 5, (1,1), 2, 2),
+            # add cotlayers here in between
             CustomConv2d(64, 128, 5, (1,1), 2, 2),
             CustomConv2d(128, 256, 5, (1,1), 2, 2),
             CustomConv2d(256, 512, 5, (1,1), 2, 2, dropout=0.5),
@@ -24,9 +25,9 @@ class SpatialAttentionBlock(nn.Module):
         self.c1 = conv_output.size(1) // 8
         self.c = conv_output.size(3)
         self.d = conv_output.size(1)
-        self.conv1 = self.conv1x1(d, c1)
-        self.conv2 = self.conv1x1(d, c1)
-        self.conv3 = self.conv1x1(d, d)
+        self.key_embed = self.conv1x1(d, c1)
+        self.query_embed = self.conv1x1(d, c1)
+        self.val_embed = self.conv1x1(d, d)
 
     @staticmethod
     def conv1x1(in_channels, out_channels):
@@ -42,6 +43,13 @@ class SpatialAttentionBlock(nn.Module):
         #TODO: finish this one
         pass
 
+
+class ChannelAttentionBlock(nn.Module):
+    def __init__(self, conv_output):
+        pass
+
+    def forward(self, input):
+        pass
 
 
 class LeftBlock(nn.Module):
