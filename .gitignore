@@ -1,8 +1,10 @@
 *.pyc
+.ipynb_checkpoints
 .vscode
 __pycache__
 test.py
 test_bn.py
+*testing_models.ipynb
 speed.*
 tests.yml
 experiments/*
