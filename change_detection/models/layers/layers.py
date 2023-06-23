@@ -44,7 +44,7 @@ class CustomConv2d(nn.Module):
             self.conv.add_module("dropout", nn.Dropout(0.5))
 
     def forward(self, input: Tensor) -> Tensor:
-        return self.con(input)
+        return self.conv(input)
 
 
 class SpatialAttentionLeft(nn.Module):
