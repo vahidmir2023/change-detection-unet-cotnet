@@ -1,6 +1,16 @@
 import os, tqdm, cv2
+import torch
 from pathlib import Path
 from glob import glob
+from torchvision.io import read_image
+from torchvision import transforms as T
+
+
+__all__ = [
+    "LevirCDDataset",
+    "make_cropped_dataset",
+]
+
 
 def make_cropped_dataset(ds_path, crop_size = (128, 128), stride = (64, 64), img_format="png"):
     for folder in ('A', 'B', 'label'):
@@ -22,3 +32,33 @@ def make_cropped_dataset(ds_path, crop_size = (128, 128), stride = (64, 64), img
                             f"{cropping_folder_path}/{basename}_{x}_{cropped_width}_{y}_{cropped_height}.{img_format}",
                             cropped_img
                         )
+
+
+class LevirCDDataset(torch.utils.data.Dataset):
+    def __init__(self, ds_path, partition = "train", crop_size: tuple = (128, 128), img_format = "png"):
+        assert partition in ("train", "val", "test")
+        self.imgs_path = {}
+        self.len_imgs = -1
+        for folder in ("A", "B", "label"):
+            path = str(ds_path / partition / f"{folder}_{crop_size[0]}_{crop_size[1]}")
+            self.imgs_path[folder] = [os.path.join(path, img) for img in os.listdir(path) if img.endswith(f".{img_format}")]
+            self.imgs_path[folder].sort()
+
+            if self.len_imgs == -1:
+                self.len_imgs = len(self.imgs_path[folder])
+            else:
+                assert self.len_imgs == len(self.imgs_path[folder])
+
+    def __len__(self):
+        return self.len_imgs
+    
+    def __getitem__(self, index):
+        """
+        Returns stacked A and B and the label image as well
+        """
+        img1 = read_image(self.imgs_path["A"][index])
+        img2 = read_image(self.imgs_path["B"][index])
+        img = torch.concat([img1, img2], axis=0) / 255.
+        label = T.Grayscale()(read_image(self.imgs_path["label"][index])) / 255.
+        label = torch.concat([1-label, label], axis=0)
+        return img, label
