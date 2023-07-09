@@ -115,7 +115,7 @@ class UpsamplingBlock(nn.Module):
         self.merge_upsample = merge_upsample
 
         self.conv_bn2 = nn.Sequential(
-            nn.Upsample((2,2)),
+            nn.Upsample(scale_factor=(2,2)),
             nn.Conv2d(in_channels, out_channels, 2, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
