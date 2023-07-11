@@ -40,7 +40,7 @@ class EdgeCrossEntropy(nn.Module):
     def __init__(self):
         super(EdgeCrossEntropy, self).__init__()
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
-        self.bce_loss = nn.BCELoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
 
     def forward(self, y, dist, coef=0.5):
         edge_pre = self.maxpool(dist)
@@ -51,8 +51,8 @@ class EdgeCrossEntropy(nn.Module):
         edge_gt_1 = edge_gt[:, 1, :, :] - y[:, 1, :, :]
         edge_gt_0 = y[:, 0, :, :] - edge_gt[:, 0, :, :]
 
-        edge_dist = torch.stack((edge_dist_0, edge_dist_1),axis=1)
-        edge_gt = torch.stack((edge_gt_0, edge_gt_1),axis=1)
+        edge_dist = torch.stack((edge_dist_0, edge_dist_1), axis=1)
+        edge_gt = torch.stack((edge_gt_0, edge_gt_1), axis=1)
         
         loss = self.bce_loss(y, dist) + coef * self.bce_loss(edge_gt, edge_dist)
         return loss
