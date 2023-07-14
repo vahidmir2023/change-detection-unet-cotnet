@@ -25,18 +25,17 @@ class ConvBlock(nn.Module):
             CotLayer(cotlayer_channels, cotlayer_kernel_size),
             nn.BatchNorm2d(cotlayer_channels),
             nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2)
     )
 
     # self.net[0].weight = self.net[0].apply(he_normalizer)
 
-    self.maxpool = nn.MaxPool2d(2, 2)
 
   def forward(self, x):
     """
     accepts a 2D-Tensor and returns two 2D-Tensors
     """
-    out = self.net(x)
-    return out, self.maxpool(out)
+    return self.net(x)
 
 
 class Conv2dWithHeNorm(nn.Module):
@@ -93,21 +92,21 @@ class BackBone(nn.Module):
         self.dropout = nn.Dropout(dropout_val)
 
     def forward(self, x):
-        out64, maxpool64 = self.nets["net64"](x)
-        out128, maxpool128 = self.nets["net128"](maxpool64)
-        out256, maxpool256 = self.nets["net256"](maxpool128)
-        _, maxpool512 = self.nets["net512"](maxpool256)
-        maxpool512 = self.dropout(maxpool512)
-        return [out64, out128, out256, maxpool512]
+        out64 = self.nets["net64"](x)
+        out128 = self.nets["net128"](out64)
+        out256 = self.nets["net256"](out128)
+        out512 = self.nets["net512"](out256)
+        out512 = self.dropout(out512)
+        return [out64, out128, out256, out512]
 
 
 class UpsamplingBlock(nn.Module):
     def __init__(
         self, 
-        in_channels, 
-        out_channels, 
-        translation_in_channels, 
-        translation_out_channels, 
+        in_channels: int, 
+        out_channels: int, 
+        translation_in_out_channels_1: tuple, 
+        translation_in_out_channels_2: tuple, 
         merge_upsample=True
     ):
         super(UpsamplingBlock, self).__init__()
@@ -116,27 +115,27 @@ class UpsamplingBlock(nn.Module):
 
         self.conv_bn2 = nn.Sequential(
             nn.Upsample(scale_factor=(2,2)),
-            nn.Conv2d(in_channels, out_channels, 2, padding=1),
+            nn.Conv2d(in_channels, out_channels, 1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
 
         if merge_upsample:
             self.conv_bn3 = nn.Sequential(
-                nn.Conv2d(translation_in_channels*2, translation_out_channels, 3, padding=1),
-                nn.BatchNorm2d(translation_out_channels),
+                nn.Conv2d(translation_in_out_channels_1[0]*2, translation_in_out_channels_1[1], 3, padding=1),
+                nn.BatchNorm2d(translation_in_out_channels_1[1]),
                 nn.ReLU(inplace=True)
             )
         else:
             self.conv_bn3 = nn.Sequential(
-                nn.Conv2d(translation_in_channels, translation_out_channels, 3, padding=1),
-                nn.BatchNorm2d(translation_out_channels),
+                nn.Conv2d(translation_in_out_channels_1[0], translation_in_out_channels_1[1], 3, padding=1),
+                nn.BatchNorm2d(translation_in_out_channels_1[1]),
                 nn.ReLU(inplace=True)
             )
 
         self.conv_bn4 = nn.Sequential(
-            nn.Conv2d(translation_in_channels, translation_out_channels, 3, padding=1),
-            nn.BatchNorm2d(translation_out_channels),
+            nn.Conv2d(translation_in_out_channels_2[0], translation_in_out_channels_2[1], 3, padding=1),
+            nn.BatchNorm2d(translation_in_out_channels_2[1]),
             nn.ReLU(inplace=True)
         )
 
@@ -145,13 +144,12 @@ class UpsamplingBlock(nn.Module):
         receives a merged or not 4D-Tensor
         """
         out = self.conv_bn2(x)
-        print("how ever the entry shape is --> ", x.shape)
-        print("out shape from upsampling block --> ", out.shape)
+        # print("--------\nhow ever the entry shape is --> ", x.shape)
+        # print("out shape from upsampling block --> ", out.shape)
+        
         if self.merge_upsample:
-            out = torch.cat([
-                out,
-                torch.cat([left_cot_x, right_cot_x], axis=1)], 
-                1,
-            )
+            merge = torch.cat([left_cot_x, right_cot_x], axis=1)
+            # print("concatenated out shape from left and right --> ", merge.shape)
+            out = torch.cat([out, merge], axis=1)
         
         return self.conv_bn4(self.conv_bn3(out))

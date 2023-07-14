@@ -12,6 +12,31 @@ __all__ = [
 ]
 
 
+def _normalize_cfg(partition = "train"):
+    dataset_mean_std = {
+        "train": {
+            "A_128_128": {
+                "mean": [0.45057096281223236, 0.4470393464069983, 0.3815948267089663],
+                "std": [0.21715168747967356, 0.20408517208762272, 0.1867427639490323],
+            },
+            "B_128_128": {
+                "mean": [0.3463029653739229, 0.3389253688082883, 0.2895384042782596],
+                "std": [0.15800775701640743, 0.15240661814615453, 0.14486230966885502],
+            }
+        },
+    }
+    return (
+        T.Normalize(
+            torch.Tensor(dataset_mean_std[partition]["A_128_128"]["mean"]),
+            torch.Tensor(dataset_mean_std[partition]["A_128_128"]["std"])
+        ), 
+        T.Normalize(
+            torch.Tensor(dataset_mean_std[partition]["B_128_128"]["mean"]),
+            torch.Tensor(dataset_mean_std[partition]["B_128_128"]["std"])
+        ),
+    ) if partition in dataset_mean_std.keys() else None
+
+
 def make_cropped_dataset(ds_path, crop_size = (128, 128), stride = (64, 64), img_format="png"):
     for folder in ('A', 'B', 'label'):
         img_folder = str(ds_path / folder)
@@ -34,15 +59,29 @@ def make_cropped_dataset(ds_path, crop_size = (128, 128), stride = (64, 64), img
                         )
 
 
+class PyTMinMaxScalerVectorized(object):
+    """
+    Transforms each channel to the range [0, 1].
+    """
+    def __call__(self, tensor):
+        scale = 1.0 / (tensor.max(dim=1, keepdim=True)[0] - tensor.min(dim=1, keepdim=True)[0]) 
+        tensor.mul_(scale).sub_(tensor.min(dim=1, keepdim=True)[0])
+        return tensor
+
+
 class LevirCDDataset(torch.utils.data.Dataset):
-    def __init__(self, ds_path, partition = "train", crop_size: tuple = (128, 128), img_format = "png"):
+    def __init__(self, ds_path, partition = "train", crop_size: tuple = (128, 128), limit: int = None, img_format: str = "png"):
         assert partition in ("train", "val", "test")
         self.imgs_path = {}
         self.len_imgs = -1
+        self.scaler = PyTMinMaxScalerVectorized()
+
         for folder in ("A", "B", "label"):
             path = str(ds_path / partition / f"{folder}_{crop_size[0]}_{crop_size[1]}")
             self.imgs_path[folder] = [os.path.join(path, img) for img in os.listdir(path) if img.endswith(f".{img_format}")]
             self.imgs_path[folder].sort()
+            if limit:
+                self.imgs_path[folder] = self.imgs_path[folder][:limit]
 
             if self.len_imgs == -1:
                 self.len_imgs = len(self.imgs_path[folder])
@@ -56,9 +95,13 @@ class LevirCDDataset(torch.utils.data.Dataset):
         """
         Returns stacked A and B and the label image as well
         """
-        img1 = read_image(self.imgs_path["A"][index])
-        img2 = read_image(self.imgs_path["B"][index])
-        img = torch.concat([img1, img2], axis=0) / 255.
+        img1 = read_image(self.imgs_path["A"][index]) / 255.
+        img2 = read_image(self.imgs_path["B"][index]) / 255.
+        img = torch.cat([img1, img2], axis=0)
+        # img = torch.concat(
+        #     [self.scaler(img1.float()), self.scaler(img2.float())], 
+        #     axis=0
+        # )
         label = T.Grayscale()(read_image(self.imgs_path["label"][index])) / 255.
         label = torch.concat([1-label, label], axis=0)
         return img, label

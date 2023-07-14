@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .layers.initializers import he_normalizer
 from .layers import layers
 
@@ -43,7 +44,7 @@ class ChannelAttentionBlock(nn.Module):
 
         fch = x.view(-1, c*c, d)
         out = torch.linalg.matmul(fch, fch.transpose(1,2))
-        out = torch.nn.functional.softmax(out)
+        out = torch.nn.functional.softmax(out, dim=-1)
         out = torch.linalg.matmul(fch.transpose(1,2), out)
         out = out.view(-1, d, c, c)
         return out
@@ -51,10 +52,10 @@ class ChannelAttentionBlock(nn.Module):
 
 ###### New Network ######
 class UnetCotnetNetwork(nn.Module):
-    def __init__(self, in_channels, classes, batch_size):
+    def __init__(self, in_channels, classes):
         super(UnetCotnetNetwork, self).__init__()
 
-        self.batch_size = batch_size
+        # self.batch_size = batch_size
 
         self.channel_att = ChannelAttentionBlock()
 
@@ -71,16 +72,16 @@ class UnetCotnetNetwork(nn.Module):
 
         # upsampling block
         self.upsamples = nn.ModuleDict({
-            "512_512": layers.UpsamplingBlock(512, 512, 512, 512), 
-            "256_256": layers.UpsamplingBlock(512, 256, 256, 256), 
-            "128_128": layers.UpsamplingBlock(256, 128, 128, 128), 
-            "128_64": layers.UpsamplingBlock(128, 128, 64, 64, merge_upsample=False), 
+            "512_512": layers.UpsamplingBlock(512, 512, (512, 512), (512, 512)), 
+            "256_256": layers.UpsamplingBlock(512, 256, (256, 256), (256, 256)), 
+            "128_128": layers.UpsamplingBlock(256, 128, (128, 128), (128, 128)), 
+            "128_64": layers.UpsamplingBlock(128, 128, (128, 64), (64, 64), merge_upsample=False), 
         })
 
         self.conv_bn = nn.Sequential(
             nn.Conv2d(64, classes, 1),
             nn.BatchNorm2d(classes),
-            nn.Sigmoid(),
+            # nn.Sigmoid(), # since we are using BCEWithLogitsLoss
         )
 
     def forward(self, left_x, right_x):
@@ -94,18 +95,21 @@ class UnetCotnetNetwork(nn.Module):
         dist = (left_bb_outputs[-1] - right_bb_outputs[-1]).pow(2)
         dist = self.channel_att(dist)
 
-        for i in range(len(left_bb_outputs)):
-            print(f"idx: {i-4}\tconv{2*(i+6)} --> {left_bb_outputs[i].shape}")
+        # for i in range(len(left_bb_outputs)):
+        #     print(f"idx: {i-4}\tconv{2**(i+6)} --> {left_bb_outputs[i].shape}")
 
-        for i in range(len(right_bb_outputs)):
-            print(f"idx: {i-4}\tconv{64**(i+6)} --> {right_bb_outputs[i].shape}")
+        # for i in range(len(right_bb_outputs)):
+        #     print(f"idx: {i-4}\tconv{2**(i+6)} --> {right_bb_outputs[i].shape}")
 
-        print(f"dist.shape --> {dist.shape}\n====================\n")
+        # print(f"dist.shape --> {dist.shape}\n====================\n")
 
         # Upsampling part
-        up6_out = self.upsamples["512_512"](dist, left_bb_outputs[-1], right_bb_outputs[-1])
-        up7_out = self.upsamples["256_256"](up6_out, left_bb_outputs[-2], right_bb_outputs[-2])
-        up8_out = self.upsamples["128_128"](up7_out, left_bb_outputs[-3], right_bb_outputs[-3])
+        up6_out = self.upsamples["512_512"](dist, left_bb_outputs[-2], right_bb_outputs[-2])
+        # print("up6_out shape --> ", up6_out.shape)
+        up7_out = self.upsamples["256_256"](up6_out, left_bb_outputs[-3], right_bb_outputs[-3])
+        # print("up7_out shape --> ", up7_out.shape)
+        up8_out = self.upsamples["128_128"](up7_out, left_bb_outputs[-4], right_bb_outputs[-4])
+        # print("up8_out shape --> ", up8_out.shape)
         up9_out = self.upsamples["128_64"](up8_out)
 
         out = self.conv_bn(up9_out)
