@@ -1,6 +1,9 @@
-import os, tqdm, cv2, skimage, imageio
+import os, tqdm, cv2
+import skimage
 import numpy as np
 import tifffile as tiff
+import imageio
+
 from pathlib import Path
 from glob import glob
 
@@ -133,8 +136,9 @@ class CD3DDataset(torch.utils.data.Dataset):
         return len(self.total_imgs)
 
     def __init__(self, idx):
-        t1 = imageio.imread(self.t1_imgs_fps[idx])
-        t2 = imageio.imread(self.t2_imgs_fps[idx])
+        # read data with tifffile because of 3d mask int16
+        t1 = imageio.v3.imread(self.t1_imgs_fps[idx])
+        t2 = imageio.v3.imread(self.t2_imgs_fps[idx])
         # mask2d = imageio.imread(self.masks2d_fps[idx])
         mask3d = tiff.imread(self.masks3d_fps[idx])
 
