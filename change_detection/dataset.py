@@ -174,7 +174,7 @@ class CD3DDataset(torch.utils.data.Dataset):
         self.augments = augments
 
     def __len__(self):
-        return len(self.len_imgs)
+        return self.len_imgs
 
     def __getitem__(self, idx):
         # read data with tifffile because of 3d mask int16
