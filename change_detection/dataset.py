@@ -185,7 +185,7 @@ class CD3DDataset(torch.utils.data.Dataset):
 
         if self.augments:
             sample = self.augments(image=t1, t2=t2, mask3d=mask3d)
-            t1, t2, mask3d = sample['image'], sample['t2'], sample['mask3d']
+            t1, t2, mask3d = sample['image'], sample['t2'], sample['mask3d'].permute(2, 0, 1)
         else:
             t1, t2, mask3d = torch.Tensor(t1), torch.Tensor(t2), torch.Tensor(mask3d)
             t1, t2, mask3d = t1.permute(2, 0, 1), t2.permute(2, 0, 1), mask3d.permute(2, 0, 1)
