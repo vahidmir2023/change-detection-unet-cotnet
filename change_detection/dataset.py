@@ -1,8 +1,10 @@
-import os, tqdm, cv2
+import os, tqdm, cv2, skimage, imageio
+import numpy as np
 import tifffile as tiff
-import torch
 from pathlib import Path
 from glob import glob
+
+import torch
 from torchvision.io import read_image
 from torchvision import transforms as T
 
@@ -131,9 +133,9 @@ class CD3DDataset(torch.utils.data.Dataset):
         return len(self.total_imgs)
 
     def __init__(self, idx):
-        t1 = read_image(self.t1_imgs_fps[idx]).numpy()
-        t2 = read_image(self.t2_imgs_fps[idx]).numpy()
-        # mask2d = read_image(self.masks2d_fps[idx]).numpy() / 255.
+        t1 = imageio.imread(self.t1_imgs_fps[idx])
+        t2 = imageio.imread(self.t2_imgs_fps[idx])
+        # mask2d = imageio.imread(self.masks2d_fps[idx])
         mask3d = tiff.imread(self.masks3d_fps[idx])
 
         if self.augments:
