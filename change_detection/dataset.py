@@ -134,10 +134,10 @@ class CD3DDataset(torch.utils.data.Dataset):
         t1 = read_image(self.t1_imgs_fps[idx]).numpy()
         t2 = read_image(self.t2_imgs_fps[idx]).numpy()
         # mask2d = read_image(self.masks2d_fps[idx]).numpy() / 255.
-        mask = tiff.imread(self.masks3d_fps[idx])
+        mask3d = tiff.imread(self.masks3d_fps[idx])
 
         if self.augments:
-            sample = self.augments(image=t1, t2=t2, mask=mask, mask3d=mask)
-            t1, t2, mask, _ = sample['image'], sample['t2'], sample['mask'], sample['mask3d']
+            sample = self.augments(image=t1, t2=t2, mask3d=mask3d)
+            t1, t2, mask3d = sample['image'], sample['t2'], sample['mask3d']
         
-        return torch.concat([t1, t2], axis=0), mask
+        return torch.concat([t1, t2], axis=0), mask3d
