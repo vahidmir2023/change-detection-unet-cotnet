@@ -1,4 +1,5 @@
 import os, tqdm, cv2
+import tifffile as tiff
 import torch
 from pathlib import Path
 from glob import glob
@@ -8,6 +9,7 @@ from torchvision import transforms as T
 
 __all__ = [
     "LevirCDDataset",
+    "CD3DDataset",
     "make_cropped_dataset",
 ]
 
@@ -105,3 +107,37 @@ class LevirCDDataset(torch.utils.data.Dataset):
         label = T.Grayscale()(read_image(self.imgs_path["label"][index])) / 255.
         label = torch.concat([1-label, label], axis=0)
         return img, label
+
+
+class CD3DDataset(torch.utils.data.Dataset):
+    def __init__(self, root, augments=None):
+        t1_imgs_dir = os.path.join(root, '2010/')
+        t2_imgs_dir = os.path.join(root, '2017/')
+        # masks2d_dir = os.path.join(root, '2D/')
+        masks3d_dir = os.path.join(root, '3D/')
+
+        img_names = os.listdir(t1_imgs_dir)
+        mask3d_names = os.listdir(masks3d_dir)
+
+        self.t1_imgs_fps = [os.path.join(t1_imgs_dir, img_name) for img_name in img_names]
+        self.t2_imgs_fps = [os.path.join(t2_imgs_dir, img_name) for img_name in img_names]
+        # self.masks2d_fps = [os.path.join(masks2d_dir, img_name) for img_name in img_names]
+        self.masks3d_fps = [os.path.join(masks3d_dir, img_name) for img_name in mask3d_names]
+        self.total_imgs = len(img_names)
+
+        self.augments = augments
+
+    def __len__(self):
+        return len(self.total_imgs)
+
+    def __init__(self, idx):
+        t1 = read_image(self.t1_imgs_fps[idx]).numpy()
+        t2 = read_image(self.t2_imgs_fps[idx]).numpy()
+        # mask2d = read_image(self.masks2d_fps[idx]).numpy() / 255.
+        mask = tiff.imread(self.masks3d_fps[idx])
+
+        if self.augments:
+            sample = self.augments(image=t1, t2=t2, mask=mask, mask3d=mask)
+            t1, t2, mask, _ = sample['image'], sample['t2'], sample['mask'], sample['mask3d']
+        
+        return torch.concat([t1, t2], axis=0), mask
