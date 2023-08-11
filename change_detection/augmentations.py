@@ -12,32 +12,32 @@ def get_training_augmentations(m = DS_3DCD_MEAN, s = DS_3DCD_STD):
 
         albu.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
 
-        albu.GaussNoise(p=0.2),
+        # albu.GaussNoise(p=0.2),
 
-        albu.OneOf(
-            [
-                albu.CLAHE(p=1),
-                albu.RandomBrightness(p=1),
-                albu.RandomGamma(p=1),
-            ],
-            p=0.9,
-        ),
+        # albu.OneOf(
+        #     [
+        #         # albu.CLAHE(p=1),
+        #         albu.RandomBrightnessContrast(p=1),
+        #         albu.RandomGamma(p=1),
+        #     ],
+        #     p=0.9,
+        # ),
 
-        albu.OneOf(
-            [
-                albu.Blur(blur_limit=3, p=1),
-                albu.MotionBlur(blur_limit=3, p=1),
-            ],
-            p=0.9,
-        ),
+        # albu.OneOf(
+        #     [
+        #         albu.Blur(blur_limit=3, p=1),
+        #         albu.MotionBlur(blur_limit=3, p=1),
+        #     ],
+        #     p=0.9,
+        # ),
 
-        albu.OneOf(
-            [
-                albu.RandomContrast(p=1),
-                albu.HueSaturationValue(p=1),
-            ],
-            p=0.9,
-        ),
+        # albu.OneOf(
+        #     [
+        #         albu.RandomContrast(p=1),
+        #         albu.HueSaturationValue(p=1),
+        #     ],
+        #     p=0.9,
+        # ),
 
         albu.Normalize(mean = m, std = s),
         apt.ToTensorV2(),
